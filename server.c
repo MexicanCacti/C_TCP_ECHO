@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <unistd.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -137,7 +138,13 @@ int main(int argc, char** argv)
 
     addr_size = sizeof connectionAddr;
 
-    int connectionFD = accept(socketFD, (struct sockaddr *addr) &connectionAddr, &addr_size);
+    int connectionFD = accept(socketFD, (struct sockaddr *)&connectionAddr, &addr_size);
+    if(connectionFD == -1)
+    {
+        returnCode = errno;
+        perror("accept error");
+        goto cleanup;
+    }
 
     // can close listen if no other connections will be used!
 
@@ -146,6 +153,7 @@ int main(int argc, char** argv)
     /* int send(int sockfd, const void* msg, int len, int flags)
 
         returns # of bytes sent... so just like read/write same I/O rules apply
+        0 returned if done
     */
 
     char* msg = "Connected :)";
@@ -162,11 +170,24 @@ int main(int argc, char** argv)
         goto cleanup;
     }
 
+    char readBuffer[1024];
+
     /*  int recv(int sockfd, void *buf, int len, int flags);
 
             Returns # of bytes read into the buffer
+            0 returned if done
     */
 
+    int bytes_recv = recv(connectionFD, &readBuffer, 1024, 0);
+    if(bytes_recv < 0)
+    {
+        returnCode = errno;
+        perror("Error recv msg");
+        close(connectionFD);
+        goto cleanup;
+    }
+
+    printf("Received %d bytes: %s", bytes_recv, readBuffer);
 
 cleanup:
     /*
