@@ -7,6 +7,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 #define BACKLOG 10
 #define LISTEN_PORT "3490"
@@ -122,6 +123,9 @@ int main(int argc, char** argv)
         goto cleanup;
     }
 
+
+    struct sockaddr_storage connectionAddr;
+
     /*
         int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
             Accept call returns a NEW socket file descriptor for THIS SINGLE connection. OG one is still listening for connections
@@ -129,9 +133,6 @@ int main(int argc, char** argv)
             addr -> pointer to local struct where info about incoming connections will go
             addrlen -> local int var set to sizeof(struct sockaddr_storage)... will place <= sizeof bytes. will change value of addrlen to reflect that
     */
-
-
-    struct sockaddr_storage connectionAddr;
 
     // So the portion below would be called in a loop, listen only needs to be called once!
     socklen_t addr_size;
@@ -146,7 +147,31 @@ int main(int argc, char** argv)
         goto cleanup;
     }
 
+    struct sockaddr_storage connectionInfo;
+    socklen_t connectionInfoLen = sizeof connectionInfo;
+
+    status = getpeername(connectionFD, (struct sockaddr*)&connectionInfo, &connectionInfoLen);
+
+    if(status == -1)
+    {
+        returnCode = errno;
+        perror("connection info error");
+        close(connectionFD);
+        goto cleanup;
+    }
+
+
+    struct sockaddr_in* connectionInfoIn = (struct sockaddr_in*)&connectionInfo;
+    if( inet_ntop(connectionInfoIn->sin_family, &(connectionInfoIn->sin_addr), ipstr, INET_ADDRSTRLEN) == NULL)
+    {
+        perror("ipv4 conversion error");
+        returnCode = 1;
+        goto cleanup;
+    }
+
+    printf("Connection from IP: %s\n", ipstr);
     // can close listen if no other connections will be used!
+
 
     // send & recv are BLOCKING calls, so program will stop until something received or until all sent
 
@@ -160,7 +185,7 @@ int main(int argc, char** argv)
     int len, bytes_sent;
 
     len = strlen(msg);
-    bytes_sent = send(connectionFD, &msg, len, 0);
+    bytes_sent = send(connectionFD, msg, len, 0);
 
     if(bytes_sent < 0)
     {
@@ -203,6 +228,7 @@ cleanup:
             Ret 0 on success, 1 on error... shutdown doesn't close file descriptor!!!   Just changes its usability
     
     */
+   shutdown(socketFD, SHUT_RDWR);
     close(socketFD);
     freeaddrinfo(serverSetupInfo);
     exit(returnCode);

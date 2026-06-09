@@ -1,15 +1,19 @@
+#define _GNU_SOURCE
+
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <netdb.h>
 
 
 int main(int argc, char** argv)
 {
-    int status;
+    int status, returnCode;
     struct addrinfo hints;
     struct addrinfo *serverInfo;
     char ipstr[INET_ADDRSTRLEN];
@@ -17,7 +21,6 @@ int main(int argc, char** argv)
     memset(&hints, 0, sizeof hints);    // ensure empty
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;        // fill in my IP for me, if want manual, drop AI_PASSIVE & put fill in the struct received in getaddrinfo
 
 
     /*
@@ -61,7 +64,7 @@ int main(int argc, char** argv)
 
         Remember to call freeaddinfo when done!
     */
-    if( (status = getaddrinfo(NULL, "3490", &hints, &serverInfo)) != 0) // Note if we wanted to connect to a specific IP, replace NULL with "IP.Goes.Here.!"
+    if( (status = getaddrinfo("127.0.0.1", "3490", &hints, &serverInfo)) != 0) // Note if we wanted to connect to a specific IP, replace NULL with "IP.Goes.Here.!"
     {
         fprintf(stderr, "gai error: %s\n", gai_strerror(status)); 
         exit(1);
@@ -82,6 +85,51 @@ int main(int argc, char** argv)
     //inet_ntop(serverInfo->ai_family, &serverInfo->ai_addr.s_addr, ipstr, sizeof ipstr);
     printf("    %s: %s\n", "IPV4", ipstr);
 
+    int serverFD = socket(serverInfo->ai_family, serverInfo->ai_socktype, serverInfo->ai_protocol);
+    if(serverFD < 0)
+    {
+        returnCode = errno;
+        perror("socket creating error");
+        goto cleanup;
+    }
+
+    status = connect(serverFD, serverInfo->ai_addr, serverInfo->ai_addrlen);
+    if(status == -1)
+    {
+        returnCode = errno;
+        perror("connect error");
+        goto cleanup;
+    }
+
+    char readBuffer[1024];
+    int bytes_recv = recv(serverFD, &readBuffer, sizeof(readBuffer) - 1, 0);
+    if(bytes_recv < 0)
+    {
+        returnCode = errno;
+        perror("Error recv msg");
+        close(serverFD);
+        goto cleanup;
+    }
+
+    readBuffer[bytes_recv] = '\0';
+
+    printf("Received %d bytes: %s\n", bytes_recv, readBuffer);
+
+    char* msg = "Hello Server!";
+    int len, bytes_sent;
+    len = strlen(msg);
+    bytes_sent = send(serverFD, msg, len, 0);
+    if(bytes_sent < 0)
+    {
+        returnCode = errno;
+        perror("Error sending msg");
+        close(serverFD);
+        goto cleanup;
+    }
+
+    cleanup:
+    shutdown(serverFD, SHUT_RDWR);
+    close(serverFD);
     freeaddrinfo(serverInfo); // free the linked-list
-    return 0;
+    return returnCode;
 }
