@@ -1,0 +1,23 @@
+1. What is the difference between TCP and UDP?
+
+    TCP is a reliable connection-based protocol that ensures that every packet is sent & in order. UDP is a connection-less protocol that is not as reliable.
+    Meaning that packets are not guaranteed to arrive in order and it is possible that they may be dropped.
+
+2. Why is TCP a byte stream, not a message protocol?
+
+    At the lowest level, TCP passes messages via a stream of bytes, it is up to the other end to reconstruct the bytes stream into its correct form. By being a byte stream and not a protcol,
+    the programmer is allowed to define how the byte stream is reconstructed when received. TCP is just the underlying protcol that it is implemented to ensure that all packets arrive & in order.
+
+3. What does SO_REUSEADDR do?
+
+    SO_REUSEADDR is a flag that allows a recently-used address to be binded to again before the system marks it as complete free.
+
+4. What happens when a client disconnects?
+    
+    When the client disconnects, so long if it was an orderly shutdown then the return value of recv/send will be 0, indicating EOF. If it was not an orderly shutdown on the otherend, are -1 will be returned with
+    errno being  set.
+
+5. Why is getaddrinfo preferable to hardcoding IPv4 structs?
+
+    getaddrinfo is preferrable to hardcoding IPv4 structs for multiple reasons. One of them is that getaddrinfo allows program to eliminate IPv4 vs IPv6 dependencies, it will return multiple IPv4 structs so that if
+    one doesn't work, the others could be tried. Finally, getaddrinfo has errorcodes for easier debugging on the programmer's side.

@@ -92,7 +92,7 @@ int main(int argc, char** argv)
             writtenBytes += bytes;
         }
 
-        recvBytes = recv(socketFD, readBuffer + writtenBytes, sizeof(readBuffer) - 1, 0);
+        recvBytes = recv(socketFD, readBuffer, sizeof(readBuffer) - 1, 0);
         if(recvBytes < 0)
         {
             returnCode = errno;
