@@ -7,6 +7,7 @@
 
     At the lowest level, TCP passes messages via a stream of bytes, it is up to the other end to reconstruct the bytes stream into its correct form. By being a byte stream and not a protcol,
     the programmer is allowed to define how the byte stream is reconstructed when received. TCP is just the underlying protcol that it is implemented to ensure that all packets arrive & in order.
+    -> TCP only ensures an ordered stream of bytes!
 
 3. What does SO_REUSEADDR do?
 
