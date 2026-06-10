@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 
         Remember to call freeaddinfo when done!
     */
-    if( (status = getaddrinfo("127.0.0.1", "3490", &hints, &serverInfo)) != 0) // Note if we wanted to connect to a specific IP, replace NULL with "IP.Goes.Here.!"
+    if( (status = getaddrinfo("127.0.0.1", "4567", &hints, &serverInfo)) != 0) // Note if we wanted to connect to a specific IP, replace NULL with "IP.Goes.Here.!"
     {
         fprintf(stderr, "gai error: %s\n", gai_strerror(status)); 
         exit(1);
